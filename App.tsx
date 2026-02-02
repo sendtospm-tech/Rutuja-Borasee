@@ -1,25 +1,17 @@
-
 import React, { useState, useEffect, useRef } from 'react';
-import { PostSize, DesignStyle, GeneratedPost, AppState, LogEntry, FileAttachment, SocialPlatform } from './types';
-import { geminiService } from './services/geminiService';
+import { PostSize, DesignStyle, GeneratedPost, LogEntry, FileAttachment, SocialPlatform } from './types.ts';
+import { geminiService } from './services/geminiService.ts';
 import { 
   PlusIcon, 
   PhotoIcon, 
   DocumentTextIcon, 
-  GlobeAltIcon, 
   ArrowDownTrayIcon, 
   TrashIcon, 
   SparklesIcon, 
-  MagnifyingGlassIcon, 
-  CameraIcon, 
-  ChatBubbleLeftEllipsisIcon, 
   RectangleGroupIcon, 
-  ArrowTopRightOnSquareIcon, 
-  ClockIcon, 
   CheckCircleIcon, 
   PaperClipIcon, 
   XMarkIcon, 
-  DocumentIcon, 
   ArrowUpTrayIcon, 
   BeakerIcon,
   ShareIcon,
@@ -152,7 +144,7 @@ const App: React.FC = () => {
       setInstructions(correctedInstructions);
       updateLastLog('success');
 
-      addLog(`Researching trends with ${contextAttachments.length} source files...`);
+      addLog(`Researching trends and context...`);
       const researchData = await geminiService.researchTopic(correctedTopic, correctedInstructions, allAttachments);
       const templateSuggestions = await geminiService.suggestTemplates(correctedTopic, selectedStyles);
       updateLastLog('success');
@@ -185,40 +177,105 @@ const App: React.FC = () => {
       setTopic(''); setInstructions(''); 
       setReferenceImage(null); setContextAttachments([]);
     } catch (err) {
+      console.error(err);
       addLog("Pipeline failed.", 'error');
       setIsGenerating(false);
-      setError("Asset generation failed.");
+      setError("Asset generation failed. Please check your API key.");
     }
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col md:flex-row overflow-hidden h-screen">
+    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col md:flex-row h-screen overflow-hidden">
       {/* Sidebar */}
-      <aside className="w-full md:w-[480px] bg-white border-b md:border-r border-slate-200 p-6 flex flex-col h-full z-20 shadow-2xl overflow-hidden">
+      <aside className="w-full md:w-[420px] bg-white border-b md:border-r border-slate-200 p-6 flex flex-col h-full z-20 shadow-xl overflow-hidden shrink-0">
         <div className="flex items-center gap-2 mb-8 shrink-0">
-          <div className="bg-indigo-600 p-2 rounded-lg shadow-lg">
+          <div className="bg-indigo-600 p-2 rounded-xl shadow-lg">
             <SparklesIcon className="w-6 h-6 text-white" />
           </div>
-          <h1 className="text-xl font-bold tracking-tight">SocialSnap Studio</h1>
+          <div>
+            <h1 className="text-xl font-black tracking-tighter">SocialSnap</h1>
+            <p className="text-[10px] font-bold text-indigo-500 uppercase tracking-widest leading-none">Design Studio</p>
+          </div>
         </div>
 
-        <div className="space-y-8 overflow-y-auto pr-2 flex-grow scrollbar-hide">
-          {/* Top Row: Vision & Knowledge */}
+        <div className="space-y-8 overflow-y-auto pr-2 flex-grow">
+          {/* Inputs Section */}
+          <div className="space-y-4">
+            <div className="space-y-1.5">
+              <label className="text-xs font-black text-slate-500 uppercase tracking-wider">Post Topic</label>
+              <input 
+                type="text" 
+                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-indigo-500 outline-none transition-all" 
+                placeholder="e.g. Modern Coffee Shop Promo" 
+                value={topic} 
+                onChange={(e) => setTopic(e.target.value)} 
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-black text-slate-500 uppercase tracking-wider">Specific Instructions</label>
+              <textarea 
+                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium h-24 outline-none focus:ring-2 focus:ring-indigo-500 resize-none transition-all" 
+                placeholder="Target audience, brand colors, mood..." 
+                value={instructions} 
+                onChange={(e) => setInstructions(e.target.value)} 
+              />
+            </div>
+          </div>
+
+          {/* Design Controls */}
+          <div className="space-y-6">
+             <div className="space-y-3">
+              <label className="text-[11px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-1.5">
+                <RectangleGroupIcon className="w-3.5 h-3.5" /> Canvas Format
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                {Object.entries(PostSize).map(([key, val]) => (
+                  <button 
+                    key={key} 
+                    onClick={() => setSelectedSize(val as PostSize)}
+                    className={`p-3 rounded-xl border text-[10px] font-black uppercase tracking-tighter transition-all flex flex-col items-center gap-1 ${selectedSize === val ? 'bg-indigo-50 border-indigo-200 text-indigo-700 shadow-sm scale-[1.02]' : 'bg-white border-slate-100 text-slate-400 hover:border-slate-200'}`}
+                  >
+                    <span>{key.replace('_', ' ')}</span>
+                    <span className="opacity-60 text-[9px]">{val}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <label className="text-[11px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-1.5">
+                <Squares2X2Icon className="w-3.5 h-3.5" /> Design Vibe
+              </label>
+              <div className="flex flex-wrap gap-1.5">
+                {Object.values(DesignStyle).map(style => (
+                  <button 
+                    key={style} 
+                    onClick={() => setSelectedStyles(prev => prev.includes(style) ? prev.filter(s => s !== style) : [...prev, style])}
+                    className={`px-3 py-1.5 text-[10px] font-bold rounded-lg border transition-all ${selectedStyles.includes(style) ? 'bg-indigo-600 border-indigo-600 text-white shadow-md' : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'}`}
+                  >
+                    {style}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Vision & Knowledge */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-3">
-              <label className="text-[11px] font-black uppercase tracking-widest text-slate-500 flex items-center gap-1.5">
+              <label className="text-[11px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-1.5">
                 <BeakerIcon className="w-3.5 h-3.5" /> Vision Guide
               </label>
               {!referenceImage ? (
-                <button onClick={() => refImageInputRef.current?.click()} className="w-full aspect-square border-2 border-dashed border-slate-200 rounded-2xl flex flex-col items-center justify-center gap-2 text-slate-400 hover:bg-slate-50 hover:border-indigo-300 transition-all p-4 text-center">
-                  <ArrowUpTrayIcon className="w-6 h-6" />
-                  <span className="text-[9px] font-bold">Base Image</span>
+                <button onClick={() => refImageInputRef.current?.click()} className="w-full aspect-square border-2 border-dashed border-slate-200 rounded-2xl flex flex-col items-center justify-center gap-2 text-slate-400 hover:bg-indigo-50/30 hover:border-indigo-300 transition-all p-4 text-center group">
+                  <ArrowUpTrayIcon className="w-6 h-6 group-hover:-translate-y-1 transition-transform" />
+                  <span className="text-[9px] font-bold">Upload Reference</span>
                 </button>
               ) : (
-                <div className="relative aspect-square rounded-2xl overflow-hidden border border-emerald-100 shadow-lg group">
+                <div className="relative aspect-square rounded-2xl overflow-hidden border border-slate-200 shadow-sm group">
                   <img src={`data:${referenceImage.mimeType};base64,${referenceImage.data}`} className="w-full h-full object-cover" alt="Ref" />
-                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                    <button onClick={() => setReferenceImage(null)} className="p-2 bg-white rounded-full text-red-500 shadow-xl"><TrashIcon className="w-5 h-5" /></button>
+                  <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity backdrop-blur-sm">
+                    <button onClick={() => setReferenceImage(null)} className="p-2 bg-white rounded-full text-red-500 shadow-xl active:scale-90 transition-transform"><TrashIcon className="w-5 h-5" /></button>
                   </div>
                 </div>
               )}
@@ -226,10 +283,10 @@ const App: React.FC = () => {
             </div>
 
             <div className="space-y-3">
-              <label className="text-[11px] font-black uppercase tracking-widest text-slate-500 flex items-center gap-1.5">
-                <DocumentTextIcon className="w-3.5 h-3.5" /> Context Files
+              <label className="text-[11px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-1.5">
+                <DocumentTextIcon className="w-3.5 h-3.5" /> Knowledge
               </label>
-              <div className="space-y-2 max-h-[160px] overflow-y-auto scrollbar-hide pr-1">
+              <div className="space-y-2">
                 {contextAttachments.map(file => (
                   <div key={file.id} className="flex items-center justify-between p-2 bg-slate-50 border border-slate-100 rounded-xl">
                     <div className="flex items-center gap-2 overflow-hidden">
@@ -239,82 +296,32 @@ const App: React.FC = () => {
                     <button onClick={() => setContextAttachments(prev => prev.filter(a => a.id !== file.id))} className="text-slate-300 hover:text-red-500"><XMarkIcon className="w-3.5 h-3.5" /></button>
                   </div>
                 ))}
-                <button onClick={() => contextFilesInputRef.current?.click()} className="w-full p-3 border-2 border-dashed border-slate-200 rounded-xl flex flex-col items-center justify-center gap-1 text-slate-400 hover:bg-indigo-50 transition-all">
+                <button onClick={() => contextFilesInputRef.current?.click()} className="w-full p-3 border-2 border-dashed border-slate-200 rounded-2xl flex flex-col items-center justify-center gap-1 text-slate-400 hover:bg-indigo-50/30 transition-all">
                   <PlusIcon className="w-4 h-4" />
-                  <span className="text-[9px] font-bold">Add context</span>
+                  <span className="text-[9px] font-bold text-center">Attach Doc/PDF</span>
                 </button>
                 <input type="file" ref={contextFilesInputRef} className="hidden" multiple onChange={handleContextUpload} />
               </div>
             </div>
           </div>
 
-          {/* Inputs Section */}
-          <div className="space-y-4">
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-600">Post Topic</label>
-              <input type="text" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="e.g. Luxury watch showcase" value={topic} onChange={(e) => setTopic(e.target.value)} />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-600">Instructions</label>
-              <textarea className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm h-24 outline-none focus:ring-2 focus:ring-indigo-500 resize-none" placeholder="Branding, tone, target audience..." value={instructions} onChange={(e) => setInstructions(e.target.value)} />
-            </div>
-          </div>
-
-          {/* Design Controls - Restored */}
-          <div className="space-y-6">
-            <div className="space-y-3">
-              <label className="text-[11px] font-black uppercase tracking-widest text-slate-500 flex items-center gap-1.5">
-                <Squares2X2Icon className="w-3.5 h-3.5" /> Design Vibe
-              </label>
-              <div className="flex flex-wrap gap-1.5">
-                {Object.values(DesignStyle).map(style => (
-                  <button 
-                    key={style} 
-                    onClick={() => setSelectedStyles(prev => prev.includes(style) ? prev.filter(s => s !== style) : [...prev, style])}
-                    className={`px-3 py-1.5 text-[10px] font-bold rounded-full border transition-all ${selectedStyles.includes(style) ? 'bg-indigo-600 border-indigo-600 text-white shadow-md' : 'bg-white text-slate-600 border-slate-200'}`}
-                  >
-                    {style}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              <label className="text-[11px] font-black uppercase tracking-widest text-slate-500 flex items-center gap-1.5">
-                <RectangleGroupIcon className="w-3.5 h-3.5" /> Poster Format
-              </label>
-              <div className="grid grid-cols-2 gap-2">
-                {Object.entries(PostSize).map(([key, val]) => (
-                  <button 
-                    key={key} 
-                    onClick={() => setSelectedSize(val as PostSize)}
-                    className={`p-3 rounded-xl border text-[10px] font-black uppercase tracking-widest transition-all ${selectedSize === val ? 'bg-indigo-50 border-indigo-200 text-indigo-700' : 'bg-white border-slate-100 text-slate-400'}`}
-                  >
-                    {key.replace('_', ' ')}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-
           {/* Social Platform Connectivity */}
-          <div className="space-y-3 pt-4 border-t border-slate-100">
-            <label className="text-[11px] font-black uppercase tracking-widest text-slate-500 flex items-center gap-1.5">
-              <ShareIcon className="w-3.5 h-3.5" /> Brand Connectivity
+          <div className="space-y-3 pt-6 border-t border-slate-100">
+            <label className="text-[11px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-1.5">
+              <ShareIcon className="w-3.5 h-3.5" /> Connections
             </label>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-2">
               {connectedPlatforms.map(platform => (
                 <button 
                   key={platform.id} 
                   onClick={() => togglePlatform(platform.id)}
-                  className={`p-3 rounded-2xl border flex items-center gap-3 transition-all ${platform.connected ? `${platform.color} border-transparent text-white shadow-lg` : 'bg-white border-slate-100 text-slate-400 hover:border-slate-300'}`}
+                  className={`p-2.5 rounded-xl border flex items-center gap-3 transition-all ${platform.connected ? `${platform.color} border-transparent text-white shadow-md` : 'bg-white border-slate-100 text-slate-400 hover:bg-slate-50'}`}
                 >
-                  <span className="text-lg">{platform.icon}</span>
+                  <span className="text-sm">{platform.icon}</span>
                   <div className="text-left">
-                    <p className="text-[9px] font-black uppercase tracking-tighter leading-none">{platform.name}</p>
-                    <p className="text-[8px] font-medium opacity-80">{platform.connected ? 'Active' : 'Offline'}</p>
+                    <p className="text-[9px] font-black leading-none">{platform.name}</p>
+                    <p className="text-[7px] font-bold opacity-70 uppercase mt-0.5">{platform.connected ? 'Active' : 'Link'}</p>
                   </div>
-                  {platform.connected && <CheckIcon className="w-3 h-3 ml-auto" />}
                 </button>
               ))}
             </div>
@@ -326,9 +333,13 @@ const App: React.FC = () => {
           <button 
             onClick={handleCreatePost} 
             disabled={isGenerating || !topic.trim()} 
-            className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-200 text-white font-black rounded-2xl shadow-xl transition-all flex items-center justify-center gap-3 active:scale-[0.98]"
+            className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-100 disabled:text-slate-400 text-white font-black rounded-2xl shadow-xl transition-all flex items-center justify-center gap-3 active:scale-[0.98] group"
           >
-            {isGenerating ? <><div className="w-5 h-5 border-2 border-white/40 border-t-white rounded-full animate-spin" /> Studio Rendering...</> : <><SparklesIcon className="w-5 h-5" /> Generate Multi-Modal Post</>}
+            {isGenerating ? (
+              <><div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Rendering Design...</>
+            ) : (
+              <><SparklesIcon className="w-5 h-5 group-hover:rotate-12 transition-transform" /> Generate Campaign Post</>
+            )}
           </button>
           {error && <p className="text-center text-[10px] font-bold text-red-500 mt-3">{error}</p>}
         </div>
@@ -337,17 +348,21 @@ const App: React.FC = () => {
       {/* Main Content */}
       <main className="flex-1 p-8 overflow-y-auto relative bg-slate-50/50">
         {isGenerating && (
-          <div className="absolute inset-0 z-50 flex items-center justify-center p-6 bg-slate-50/90 backdrop-blur-lg">
-            <div className="w-full max-w-xl bg-white rounded-[3rem] shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[80vh]">
+          <div className="absolute inset-0 z-50 flex items-center justify-center p-6 bg-slate-50/80 backdrop-blur-md">
+            <div className="w-full max-w-lg bg-white rounded-[2.5rem] shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[70vh]">
               <div className="p-8 border-b border-slate-100 bg-indigo-600 text-white">
-                <h3 className="text-2xl font-black">AI Creative Engine</h3>
-                <p className="text-indigo-100 text-sm">Synthesizing attachments and rendering visuals...</p>
+                <h3 className="text-2xl font-black tracking-tight">AI Engine Processing</h3>
+                <p className="text-indigo-100 text-xs font-bold uppercase tracking-widest mt-1">Building your creative assets</p>
               </div>
-              <div className="p-8 overflow-y-auto space-y-4 bg-slate-50">
+              <div className="p-8 overflow-y-auto space-y-4 bg-slate-50/50">
                 {activityLog.map(log => (
-                  <div key={log.id} className="flex gap-4 items-start">
-                    {log.status === 'pending' ? <div className="w-5 h-5 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin shrink-0" /> : <CheckCircleIcon className="w-5 h-5 text-emerald-500 shrink-0" />}
-                    <p className={`text-sm ${log.status === 'success' ? 'text-slate-400 font-medium' : 'text-slate-800 font-black'}`}>{log.message}</p>
+                  <div key={log.id} className="flex gap-4 items-center">
+                    {log.status === 'pending' ? (
+                      <div className="w-5 h-5 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin shrink-0" />
+                    ) : (
+                      <CheckCircleIcon className="w-5 h-5 text-emerald-500 shrink-0" />
+                    )}
+                    <p className={`text-sm ${log.status === 'success' ? 'text-slate-400 font-medium' : 'text-slate-800 font-bold'}`}>{log.message}</p>
                   </div>
                 ))}
                 <div ref={logEndRef} />
@@ -359,16 +374,16 @@ const App: React.FC = () => {
         <div className="max-w-6xl mx-auto pb-24">
           <header className="mb-12 flex justify-between items-end">
             <div>
-              <h2 className="text-4xl font-black text-slate-900 tracking-tighter">Creation Feed</h2>
-              <p className="text-slate-500 mt-1 font-medium">Your studio's generated assets and marketing copy.</p>
+              <h2 className="text-4xl font-black text-slate-900 tracking-tighter">Your Designs</h2>
+              <p className="text-slate-500 mt-1 font-medium">Browse and export your generated campaigns.</p>
             </div>
-            <div className="px-5 py-2.5 bg-white border border-slate-200 rounded-2xl shadow-sm text-xs font-bold text-slate-600 flex items-center gap-2">
+            <div className="px-5 py-2.5 bg-white border border-slate-200 rounded-2xl shadow-sm text-xs font-black text-slate-600 flex items-center gap-2">
               <RectangleGroupIcon className="w-4 h-4 text-indigo-500" />
-              {posts.length} Designs
+              {posts.length} {posts.length === 1 ? 'Asset' : 'Assets'}
             </div>
           </header>
 
-          <div className="space-y-16">
+          <div className="grid grid-cols-1 gap-12">
             {posts.map(post => (
               <PostCard 
                 key={post.id} 
@@ -378,10 +393,12 @@ const App: React.FC = () => {
               />
             ))}
             {posts.length === 0 && !isGenerating && (
-              <div className="py-48 flex flex-col items-center justify-center border-4 border-dashed border-slate-200 rounded-[4rem] bg-white/50">
-                <PhotoIcon className="w-16 h-16 text-slate-200 mb-6" />
-                <p className="text-slate-400 font-black text-xl">Empty Gallery</p>
-                <p className="text-slate-300 text-sm font-bold">Use the studio sidebar to create your first design.</p>
+              <div className="py-48 flex flex-col items-center justify-center border-2 border-dashed border-slate-300 rounded-[3rem] bg-white/40">
+                <div className="bg-slate-100 p-6 rounded-full mb-6 text-slate-300">
+                  <PhotoIcon className="w-16 h-16" />
+                </div>
+                <p className="text-slate-500 font-black text-xl">The gallery is empty</p>
+                <p className="text-slate-400 text-sm font-bold mt-2">Start creating in the sidebar to fill this space.</p>
               </div>
             )}
           </div>
@@ -402,58 +419,84 @@ const PostCard: React.FC<{ post: GeneratedPost; connectedPlatforms: SocialPlatfo
       window.open(platform === 'linkedin' ? 'https://www.linkedin.com/feed/' : 'https://www.facebook.com/', '_blank');
     } else if (platform === 'insta') {
       navigator.clipboard.writeText(text);
-      alert("Caption copied! Download the asset to upload manually on Instagram.");
+      alert("Caption copied! Download the image to upload manually on Instagram.");
     }
   };
 
+  const handleDownload = () => {
+    const link = document.createElement('a');
+    link.href = post.imageUrl;
+    link.download = `socialsnap-${post.topic.toLowerCase().replace(/\s+/g, '-')}.png`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
-    <div className="bg-white rounded-[4rem] border border-slate-200 overflow-hidden shadow-sm group hover:-translate-y-1 transition-all duration-500 flex flex-col lg:flex-row">
+    <div className="bg-white rounded-[3rem] border border-slate-200 overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-500 flex flex-col lg:flex-row group">
       {/* Visual Part */}
-      <div className="w-full lg:w-[45%] bg-slate-50 p-10 flex flex-col items-center justify-center relative border-b lg:border-b-0 lg:border-r border-slate-200">
-        <div className="absolute top-8 right-8 flex gap-3 opacity-0 group-hover:opacity-100 transition-opacity">
-          <button onClick={() => window.open(post.imageUrl, '_blank')} className="p-4 bg-white rounded-2xl shadow-xl hover:text-indigo-600"><ArrowDownTrayIcon className="w-6 h-6" /></button>
-          <button onClick={() => onDelete(post.id)} className="p-4 bg-white rounded-2xl shadow-xl hover:text-red-500"><TrashIcon className="w-6 h-6" /></button>
+      <div className="w-full lg:w-[45%] bg-slate-50 p-10 flex flex-col items-center justify-center relative border-b lg:border-b-0 lg:border-r border-slate-100">
+        <div className="absolute top-6 right-6 flex gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300 z-10 translate-y-2 group-hover:translate-y-0">
+          <button onClick={handleDownload} title="Download" className="p-3 bg-white/90 backdrop-blur-md rounded-xl shadow-lg hover:text-indigo-600 transition-colors"><ArrowDownTrayIcon className="w-6 h-6" /></button>
+          <button onClick={() => onDelete(post.id)} title="Delete" className="p-3 bg-white/90 backdrop-blur-md rounded-xl shadow-lg hover:text-red-500 transition-colors"><TrashIcon className="w-6 h-6" /></button>
         </div>
-        <div className="max-w-md w-full shadow-3xl rounded-[3rem] overflow-hidden border-[16px] border-white bg-white" style={{ aspectRatio: post.size.replace(':', '/') }}>
-          <img src={post.imageUrl} className="w-full h-full object-cover" alt="AI Creation" />
+        
+        <div className="max-w-full relative shadow-2xl rounded-2xl overflow-hidden border-8 border-white bg-white group-hover:scale-[1.02] transition-transform duration-500" 
+             style={{ 
+               width: '100%',
+               aspectRatio: post.size.includes(':') ? post.size.split(':').join(' / ') : '1/1' 
+             }}>
+          <img src={post.imageUrl} className="w-full h-full object-cover" alt="AI Generated Poster" />
+          <div className="absolute bottom-4 left-4 flex gap-1.5">
+            <span className="px-3 py-1 bg-black/50 backdrop-blur-md text-white text-[9px] font-black rounded-full uppercase tracking-widest">{post.size}</span>
+          </div>
         </div>
       </div>
 
       {/* Copy & Actions Part */}
-      <div className="w-full lg:w-[55%] p-12 space-y-8 flex flex-col justify-center bg-white">
+      <div className="w-full lg:w-[55%] p-10 space-y-6 flex flex-col justify-center bg-white relative">
         <div className="space-y-4">
-          <h3 className="text-4xl font-black text-slate-900 tracking-tighter leading-none">{post.topic}</h3>
-          <div className="bg-slate-50 p-8 rounded-[3rem] border border-slate-100 relative">
-            <span className="absolute -top-3 left-6 px-3 py-1 bg-white border border-slate-100 rounded-full text-[9px] font-black uppercase text-slate-400">Marketing Copy</span>
-            <p className="text-xl text-slate-700 leading-relaxed font-semibold italic">"{post.caption}"</p>
+          <div className="flex justify-between items-start">
+            <h3 className="text-3xl font-black text-slate-900 tracking-tighter leading-tight pr-12">{post.topic}</h3>
+          </div>
+          
+          <div className="bg-slate-50 p-8 rounded-[2rem] border border-slate-100 relative group/caption transition-colors hover:bg-indigo-50/30">
+            <span className="absolute -top-3 left-6 px-3 py-1 bg-white border border-slate-200 rounded-full text-[9px] font-black uppercase text-slate-400 tracking-widest">Optimized Copy</span>
+            <p className="text-lg text-slate-700 leading-relaxed font-semibold italic">"{post.caption}"</p>
           </div>
         </div>
 
         <div className="flex flex-wrap gap-2">
-          {post.hashtags.map(tag => <span key={tag} className="text-[11px] font-black text-indigo-600 bg-indigo-50 px-4 py-2 rounded-2xl border border-indigo-100">{tag}</span>)}
+          {post.hashtags.map(tag => (
+            <span key={tag} className="text-[10px] font-black text-indigo-600 bg-indigo-50 px-3 py-1.5 rounded-lg border border-indigo-100">
+              {tag}
+            </span>
+          ))}
         </div>
 
         {/* Action Hub */}
-        <div className="pt-8 border-t border-slate-100 space-y-4">
-          <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-            <ShareIcon className="w-4 h-4" /> Instant Brand Publishing
-          </h4>
-          <div className="flex flex-wrap gap-3">
+        <div className="pt-6 border-t border-slate-100 space-y-4">
+          <div className="flex items-center gap-2">
+            <ShareIcon className="w-4 h-4 text-slate-400" />
+            <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Post to Socials</h4>
+          </div>
+          
+          <div className="flex flex-wrap gap-2">
             {connectedPlatforms.some(p => p.connected) ? (
               connectedPlatforms.filter(p => p.connected).map(platform => (
                 <button 
                   key={platform.id} 
                   onClick={() => handleShare(platform.id)}
-                  className={`flex items-center gap-3 px-5 py-3.5 rounded-2xl text-[11px] font-black text-white shadow-xl ${platform.color} hover:scale-105 transition-all`}
+                  className={`flex items-center gap-2.5 px-4 py-3 rounded-xl text-[10px] font-black text-white shadow-md ${platform.color} hover:brightness-110 hover:-translate-y-0.5 transition-all`}
                 >
-                  <span className="text-base">{platform.icon}</span>
-                  Share to {platform.name}
+                  <span className="text-sm">{platform.icon}</span>
+                  Share on {platform.name}
                 </button>
               ))
             ) : (
-              <div className="flex items-center gap-3 p-5 bg-slate-50 rounded-2xl border border-dashed border-slate-200 w-full">
+              <div className="flex items-center gap-3 p-4 bg-slate-50 rounded-xl border border-dashed border-slate-200 w-full">
                 <LinkIcon className="w-5 h-5 text-slate-300" />
-                <p className="text-[10px] font-bold text-slate-400 uppercase">Go to Sidebar to Connect Platforms</p>
+                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">Connect accounts in sidebar to enable direct posting</p>
               </div>
             )}
           </div>

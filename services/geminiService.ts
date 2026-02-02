@@ -1,13 +1,10 @@
-
 import { GoogleGenAI, Type, GenerateContentResponse } from "@google/genai";
-import { PostSize, DesignStyle, GroundingSource, TemplateSuggestion, FileAttachment } from "../types";
+import { PostSize, DesignStyle, GroundingSource, TemplateSuggestion, FileAttachment } from "../types.ts";
 
-// Removed intermediate API_KEY variable to comply with initialization guidelines
 export class GeminiService {
   private ai: GoogleGenAI;
 
   constructor() {
-    // Always use process.env.API_KEY directly
     this.ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   }
 
@@ -32,7 +29,6 @@ export class GeminiService {
       I have also attached some reference documents/images. Please use their content to provide a highly relevant summary for a social media post.` }
     ];
 
-    // Add PDFs and Images as multi-modal context for research
     attachments.forEach(file => {
       if (file.type === 'image' || file.type === 'pdf') {
         parts.push({
@@ -42,7 +38,6 @@ export class GeminiService {
           }
         });
       } else {
-        // For other documents, we mention them by name in the text part if we can't process raw bytes
         parts[0].text += `\nReference File Attached: ${file.name}`;
       }
     });
@@ -131,15 +126,22 @@ export class GeminiService {
     const stylesString = styles.join(", ");
     const referenceImage = attachments.find(a => a.type === 'image');
     
-    let promptText = `A professional social media poster for "${topic}". Styles: ${stylesString}. ${instructions || ''} Format: ${size} aspect ratio.`;
+    // Mapping internal size aliases to actual ratios for the image generator
+    let aspectRatio: any = '1:1';
+    if (size === PostSize.INSTAGRAM) aspectRatio = '1:1';
+    else if (size === PostSize.A4_PORTRAIT) aspectRatio = '3:4';
+    else if (size === PostSize.A4_LANDSCAPE) aspectRatio = '4:3';
+    else if (size === PostSize.STORY) aspectRatio = '9:16';
+
+    let promptText = `A high-quality, professional ${size.includes('A4') ? 'A4 document style' : 'social media'} poster for "${topic}". Styles: ${stylesString}. ${instructions || ''}. Composition should be clean and commercial.`;
 
     if (referenceImage) {
-      promptText = `Reimagine the attached reference image as a professional social media poster for "${topic}". Maintain the composition but enhance it with: ${stylesString}. ${instructions || ''}`;
+      promptText = `Using the attached image as a layout reference, generate a professional social media poster for "${topic}" in ${stylesString} style. ${instructions || ''}`;
     }
 
     const parts: any[] = [{ text: promptText }];
     if (referenceImage) {
-      parts.unshift({
+      parts.push({
         inlineData: {
           data: referenceImage.data,
           mimeType: referenceImage.mimeType
@@ -151,12 +153,11 @@ export class GeminiService {
       model: 'gemini-2.5-flash-image',
       contents: { parts },
       config: {
-        imageConfig: { aspectRatio: size as any },
+        imageConfig: { aspectRatio },
       },
     });
 
     let imageUrl = "";
-    // Iterate through candidates and parts to find the image part as per guidelines
     for (const part of response.candidates?.[0]?.content?.parts || []) {
       if (part.inlineData) {
         imageUrl = `data:image/png;base64,${part.inlineData.data}`;
@@ -164,7 +165,7 @@ export class GeminiService {
       }
     }
 
-    if (!imageUrl) throw new Error("Failed to generate image");
+    if (!imageUrl) throw new Error("Image generation returned no data");
     return imageUrl;
   }
 }
